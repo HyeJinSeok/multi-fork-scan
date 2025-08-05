@@ -44,11 +44,7 @@ int main(int argc, char *argv[]) {
     }
 
     const char *directory = argv[1];
-    const char *target = "#include";
-
-    // 전체 실행 시간 측정 시작
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
+    const char *target = "#include"; // #include를 target으로 지정
 
     DIR *dir = opendir(directory);
     if (dir == NULL) {
@@ -75,6 +71,11 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    
+    // 멀티프로세싱 측정 시작
+    
+    struct timeval m_start, m_end;
+    gettimeofday(&m_start, NULL);
 
     int filesPerProcess = totalFiles / 4;
 
@@ -115,16 +116,39 @@ int main(int argc, char *argv[]) {
 
 
     // 실행 시간 및 자원 사용량 측정 종료
-    gettimeofday(&end, NULL);
-    struct rusage usage;
-    getrusage(RUSAGE_CHILDREN, &usage);
+    gettimeofday(&m_end, NULL);
+    struct rusage m_usage;
+    getrusage(RUSAGE_CHILDREN, &m_usage);
 
     printf("\n*****************************************************\n");
     printf("#include 총 발생 횟수 : %d\n", totalCount);
     printf("총 수행 시간 : %ld 마이크로초\n",
-           (end.tv_sec - start.tv_sec) * 1000000L + (end.tv_usec - start.tv_usec));
-    printf("총 사용자 모드 시간 : %ld 마이크로초\n", usage.ru_utime.tv_usec);
-    printf("총 시스템 모드 시간 : %ld 마이크로초\n", usage.ru_stime.tv_usec);
+           (m_end.tv_sec - m_start.tv_sec) * 1000000L + (m_end.tv_usec - m_start.tv_usec));
+    printf("총 사용자 모드 시간 : %ld 마이크로초\n", m_usage.ru_utime.tv_usec);
+    printf("총 시스템 모드 시간 : %ld 마이크로초\n", m_usage.ru_stime.tv_usec);
+
+    
+    // 싱글 프로세싱 추가
+    struct timeval s_start, s_end;
+    gettimeofday(&s_start, NULL);
+
+    int singleCount = 0;
+    char path[512];
+    for (int i = 0; i < totalFiles; ++i) {
+        snprintf(path, sizeof(path), "%s/%s", directory, fileList[i]);
+        countIncludeOccurrences(path, target, &singleCount);
+    }
+
+    gettimeofday(&s_end, NULL);
+    struct rusage s_usage;
+    getrusage(RUSAGE_SELF, &s_usage);
+
+    printf("\n[싱글프로세싱] #include 총 발생 횟수 : %d\n", singleCount);
+    printf("[싱글프로세싱] 총 수행 시간 : %ld 마이크로초\n",
+           (s_end.tv_sec - s_start.tv_sec) * 1000000L + (s_end.tv_usec - s_start.tv_usec));
+    printf("[싱글프로세싱] 사용자 모드 시간 : %ld 마이크로초\n", s_usage.ru_utime.tv_usec);
+    printf("[싱글프로세싱] 시스템 모드 시간 : %ld 마이크로초\n", s_usage.ru_stime.tv_usec);
+
 
     // 파일명 메모리 해제
     for (int i = 0; i < totalFiles; i++) {
