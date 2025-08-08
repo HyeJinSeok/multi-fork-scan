@@ -35,7 +35,7 @@
 프로세스는 각각 독립적인 메모리와 자원을 사용하는 작업 단위임 <br>
 대표적인 프로세스 생성 함수로 fork( )를 사용할 수 있음
 
-<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/fork_desc.png" width="400">
+<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/fork_desc.png" width="500">
 
 <br>
 
@@ -91,7 +91,7 @@ sudo apt install openssh-server -y
 sudo systemctl status ssh
 ```
 
-<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/VitrualBox.png" height="330"> &nbsp; <img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/port-forwarding.png" height="330"> 
+<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/port-forwarding.png" width="700"> 
 
 <br>
 
@@ -134,30 +134,39 @@ gcc counter.c -o counter
 
 ## 🔹결과 분석
 
+<br>
 
+### ✳️ 총 수행 시간 : 멀티 프로세싱 > 싱글 프로세싱
 
-- 총 수행 시간 : 멀티 프로세싱 > 싱글 프로세싱
   
-  - 병렬 처리가 작업 시간을 단축할 것이라 예상했지만, 실제로는 **싱글 프로세싱이 더 빠르게 동작함**
-  - /usr/include 분석은 작업량이 비교적 적어, 병렬 처리보다 단일 프로세스로 수행하는 것이 더 효율적인 사례임
-  - fork( ) / wait( ) 호출로 인한 프로세스 생성 및 Context Switching **오버헤드**가 커서, 병렬 처리의 이점이 상쇄됨
+- 병렬 처리가 작업 시간을 단축할 것이라 예상했지만, 실제로는 **싱글 프로세싱이 더 빠르게 동작함**
+  
+- /usr/include 분석은 작업량이 비교적 적어, 병렬 처리보다 단일 프로세스로 수행하는 것이 더 효율적인 사례임
+  
+- fork( ) / wait( ) 호출로 인한 프로세스 생성 및 Context Switching **오버헤드**가 커서, 병렬 처리의 이점이 상쇄됨
 
 <br>
 
-- 자원 사용(사용자/시스템 모드 시간) : 멀티 프로세싱 < 싱글 프로세싱
+### ✳️ 자원 사용(사용자/시스템 모드 시간) : 멀티 프로세싱 < 싱글 프로세싱
 
-  - 멀티 프로세싱 작업이 4개 프로세스로 분산되어 각 프로세스가 짧게 끝나, 누적 CPU 시간 합계가 작게 측정됨
-  - 각 프로세스가 동시에 실행되면서 **CPU 자원을 병렬로 활용**해, 개별 프로세스 기준으로는 더 짧은 실행 시간이 나타남
+
+- 멀티 프로세싱 작업이 4개 프로세스로 분산되어 각 프로세스가 짧게 끝나, 누적 CPU 시간 합계가 작게 측정됨
+  
+- 각 프로세스가 동시에 실행되면서 **CPU 자원을 병렬로 활용**해, 개별 프로세스 기준으로는 더 짧은 실행 시간이 나타남
 
 <br>
 
 ## 🔹결론 및 시사점
 
+<br> 
 
 🔸 작업량이 적거나 I/O 비중이 낮은 경우, 멀티 프로세싱은 오히려 오버헤드로 인해 성능이 저하될 수 있음
 
 
-🔸 CPU 집약적 연산이나 대규모 데이터 처리에서는 병렬 처리가 유리하지만, fork( ) / wait( ) 호출과 Context Switching 비용을 고려해야 함
+🔸 CPU 집약적 연산이나 대규모 데이터 처리에서는 병렬 처리가 유리하지만
+
+
+🔸 fork( )/wait( ) 호출과 Context Switching 비용을 고려해야 함
 
 
 🔸 실제 환경에서는 작업 특성(연산 vs I/O, 데이터 크기 등)에 따라 싱글/멀티 방식을 선택하는 것이 성능 최적화의 핵심
