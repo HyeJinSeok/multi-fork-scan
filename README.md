@@ -1,6 +1,5 @@
 # 멀티프로세싱 기반 #include 카운터
 
-<br>
 
 이 프로젝트는 C 언어로 작성된 프로그램으로, 리눅스의 **fork( ) 시스템 호출**을 이용해 멀티 프로세싱 구조를 구현했습니다. <br>
 **자식 프로세스**들이 디렉토리 내 .h 파일을 병렬로 분석하고 #include 문자열의 발생 횟수를 집계하여 **부모 프로세스**가 최종 결과를 출력합니다.
@@ -8,6 +7,7 @@
 <br>
 
 ## 🔹실습 목표
+
 
 - 리눅스의 `fork()` 시스템 호출을 활용한 멀티프로세싱 구조의 동작 원리를 이해한다.
 - 부모-자식 프로세스 간의 역할 분담과 실행 흐름을 직접 구현한다.
@@ -19,21 +19,28 @@
 
 ## 🔹학습 시기
 
+
 📆 2023년 9월~11월
 
 <br><br>
 
 ## 🔹프로젝트 개요
 
+<br>
+
 ### ① 멀티 프로세스란?
+
 
 멀티프로세싱(Multi-processing)은 하나의 프로그램이 여러 프로세스를 생성하여 작업을 **병렬로 처리**하는 방식 <br>
 프로세스는 각각 독립적인 메모리와 자원을 사용하는 작업 단위임 <br>
 대표적인 프로세스 생성 함수로 fork( )를 사용할 수 있음
 
+<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/fork_desc.png" width="400">
+
 <br>
 
 ### ② 부모-자식 프로세스 특징
+
 
 • fork( )를 호출한 프로세스가 부모 프로세스 <br>
 • fork( )를 호출한 시점에서 바로 자식 프로세스 (**=부모의 복사본**) 생성됨 <br>
@@ -47,13 +54,12 @@
 
 ※ fork( ) 이후에 두 프로세스는 동시에 독립적으로 실행되기 때문에, **부모-자식 간 실행 순서**는 보장되지 않음 <br>
 > **좀비 프로세스** - 자식이 종료됐을 때 부모가 wait( )를 호출해 종료 상태를 수거하지 않았을 때 리소스 낭비 발생 <br>
-**고아 프로세스** - 부모가 자식보다 먼저 종료됐을 시 init(PID 1)이 대신 수거, 이를 방지하기 위해 부모는 wait( ) 이용해야 함
+**고아 프로세스** - 부모가 자식보다 먼저 종료됐을 시 init(PID 1)이 대신 수거, 이를 방지하기 위해 부모는 wait( ) 이용
 
 <br>
 
 ### ③ 이 프로젝트에서의 적용 방식
 
-<br>
 
 • 대상 디렉토리로 C/C++ 시스템 헤더 파일이 다수 위치한 **/usr/include**를 사용함 <br>
 
@@ -68,3 +74,90 @@
 <br><br>
 
 ## 🔹 프로젝트 과정
+
+<br>
+
+### 1. VirtualBox로 Ubuntu VM 생성
+
+
+```
+# 패키지 목록 최신화
+sudo apt update && sudo apt upgrade -y
+
+# OpenSSH 서버 설치
+sudo apt install openssh-server -y
+
+# SSH 서비스 상태 확인
+sudo systemctl status ssh
+```
+
+<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/VitrualBox.png" height="330"> &nbsp; <img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/port-forwarding.png" height="330"> 
+
+<br>
+
+### 2. PuTTY로 SSH 접속
+
+
+```
+호스트 IP: 127.0.0.1
+
+포트: Ubuntu VM 포트포워딩에서 지정한 포트 (예: 2222)
+
+유저명 / 비밀번호 입력 후 접속
+```
+
+<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/PuTTY.png" width="500">
+
+
+<br>
+
+### 3. 소스코드 작성 및 실행
+
+
+🔗 [counter.c](https://github.com/HyeJinSeok/multi-fork-scan/blob/main/counter.c)
+
+```
+# 소스코드 생성
+nano counter.c
+
+# 컴파일
+gcc counter.c -o counter
+
+# /usr/include 디렉토리 대상으로 실행
+./counter /usr/include
+```
+
+<img src="https://github.com/HyeJinSeok/multi-fork-scan/blob/main/assets/result.png" width="700">
+
+
+<br>
+
+## 🔹결과 분석
+
+
+
+- 총 수행 시간 : 멀티 프로세싱 > 싱글 프로세싱
+  
+  - 병렬 처리가 작업 시간을 단축할 것이라 예상했지만, 실제로는 **싱글 프로세싱이 더 빠르게 동작함**
+  - /usr/include 분석은 작업량이 비교적 적어, 병렬 처리보다 단일 프로세스로 수행하는 것이 더 효율적인 사례임
+  - fork( ) / wait( ) 호출로 인한 프로세스 생성 및 Context Switching **오버헤드**가 커서, 병렬 처리의 이점이 상쇄됨
+
+<br>
+
+- 자원 사용(사용자/시스템 모드 시간) : 멀티 프로세싱 < 싱글 프로세싱
+
+  - 멀티 프로세싱 작업이 4개 프로세스로 분산되어 각 프로세스가 짧게 끝나, 누적 CPU 시간 합계가 작게 측정됨
+  - 각 프로세스가 동시에 실행되면서 **CPU 자원을 병렬로 활용**해, 개별 프로세스 기준으로는 더 짧은 실행 시간이 나타남
+
+<br>
+
+## 🔹결론 및 시사점
+
+
+🔸 작업량이 적거나 I/O 비중이 낮은 경우, 멀티 프로세싱은 오히려 오버헤드로 인해 성능이 저하될 수 있음
+
+
+🔸 CPU 집약적 연산이나 대규모 데이터 처리에서는 병렬 처리가 유리하지만, fork( ) / wait( ) 호출과 Context Switching 비용을 고려해야 함
+
+
+🔸 실제 환경에서는 작업 특성(연산 vs I/O, 데이터 크기 등)에 따라 싱글/멀티 방식을 선택하는 것이 성능 최적화의 핵심
